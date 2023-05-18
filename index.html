@@ -5,11 +5,19 @@
     <title>Title</title>
 </head>
 <body>
+<div id="camin"></div>
 <div id="demo"></div>
+<div id="distance"></div>
 <button style="padding: 50px" onclick="getLocation()">Get Location</button>
 <script>
+    const CAMIN_LAT = 46.7557879
+    const CAMIN_LONG = 23.5897571
     var x = document.getElementById("demo");
+    var y = document.getElementById("camin");
+    var d = document.getElementById("distance");
+    let current_coordinates;
     function getLocation() {
+        showCaminPosition()
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(showPosition, errorPosition);
         } else {
@@ -20,8 +28,34 @@
     function showPosition(position) {
         // alert("got position")
         console.log(position)
-        x.innerHTML = "Latitude: " + position.coords.latitude +
-            "<br>Longitude: " + position.coords.longitude;
+        current_coordinates = position.coords
+        x.innerHTML = "Latitude current: " + position.coords.latitude +
+            "<br>Longitude current: " + position.coords.longitude;
+        showDistance()
+    }
+    function showCaminPosition(){
+        y.innerHTML = "Latitude camin: " + CAMIN_LAT +
+            "<br>Longitude camin: " + CAMIN_LONG;
+    }
+    function showDistance(){
+        // console.log(current_coordinates)
+        d.innerHTML = "Distance: " + calcDistanceFromLatLong(CAMIN_LAT, CAMIN_LONG, current_coordinates.latitude, current_coordinates.longitude).toFixed(2).toString() + "m"
+        console.log(d.innerText)
+    }
+    function calcDistanceFromLatLong(lat1, lon1, lat2, lon2){
+        const R = 6371e3; // metres
+        const phi1 = lat1 * Math.PI/180; // φ, λ in radians
+        const phi2 = lat2 * Math.PI/180;
+        const delta_phi = (lat2-lat1) * Math.PI/180;
+        const delta_lambda = (lon2-lon1) * Math.PI/180;
+
+        const a = Math.sin(delta_phi/2) * Math.sin(delta_phi/2) +
+            Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(delta_lambda/2) * Math.sin(delta_lambda/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        const d = R * c; // in metres
+        return d
     }
     function errorPosition(e) {
         alert(e)
