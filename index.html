@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta name="viewport" content="initial-scale=1.0, width=device-width" charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
     <script>
         const HERE_API_KEY = 'pHNAQsNn5PN590FzuN5KmOUPAn1Uefos0FEma5ICmTg'
     </script>
@@ -17,26 +18,27 @@
     <script type="text/javascript" src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
 </head>
 <body>
-<!--<div style="width: 640px; height: 480px" id="mapContainer"></div>-->
 <div style="width: 640px; height: 480px" id="map"></div>
-<div id="camin"></div>
-<div id="demo"></div>
-<div id="distance"></div>
-<button style="padding: 50px" onclick="getLocation()">Get Location</button>
+<button style="padding: 50px" onclick="activateLocation()">Activate Location</button>
 <script>
+    const DEF_ACC = 16
     const CAMIN_LAT = 46.7557879
     const CAMIN_LONG = 23.5897571
     const MOCK_LAT = 46.7723356631003
     const MOCK_LONG = 23.585216261192933
     // const transmitterPos = {lat: CAMIN_LAT, lng: CAMIN_LONG};
     const transmitterState = {
-        pos: {lat: CAMIN_LAT, lng: CAMIN_LONG},
+        pos: {lat: CAMIN_LAT, lng: CAMIN_LONG, acc: DEF_ACC},
         name: 'ESP8266'
     }
     // const receiverPos = {lat: MOCK_LAT, lng: MOCK_LONG};
     const receiverState = {
-        pos: {lat: MOCK_LAT, lng: MOCK_LONG},
-        name: 'phone'
+        pos: {lat: MOCK_LAT, lng: MOCK_LONG, acc: DEF_ACC},
+        name: 'Phone'
+    }
+    const newMarkerState = {
+        pos: {lat: MOCK_LAT, lng: MOCK_LONG, acc: DEF_ACC, timestamp: 0},
+        name: 'Signal'
     }
 
     // const newMarkerPos = {lat: MOCK_LAT, lng: MOCK_LONG};
@@ -63,49 +65,60 @@
 
     let transmitterMarker = new H.map.Marker(transmitterState.pos,
         {icon: transmitterIcon, zIndex: 2});
-    transmitterMarker.setData(`<div><b>Transmitter</b></div>
+    const updateTransmitterMarkerPosition = () => {
+        transmitterMarker.setData(`<div><b>Transmitter</b></div>
              <div>Name: <b>${transmitterState.name}</b></div>
+             <div>Accuracy: <b>${`±${transmitterState.pos.acc} meters`}</b></div>
              <div>Latitude: <b>${transmitterState.pos.lat.toFixed(7)}</b></div>
              <div>Longitude: <b>${transmitterState.pos.lng.toFixed(7)}</b></div>`)
+        transmitterMarker.setGeometry(transmitterState.pos);
+    }
+    updateTransmitterMarkerPosition()
+
 
     let receiverMarker = new H.map.Marker(receiverState.pos,
         {icon: receiverIcon, zIndex: 1});
-    receiverMarker.setData('<div><a href="https://www.mcfc.co.uk">Manchester City</a></div><div>City of Manchester Stadium<br />Capacity: 55,097</div>')
+    const updateReceiverMarkerPosition = () => {
+        receiverMarker.setData(`<div><b>Receiver</b></div>
+            <div>Name: <b>${receiverState.name}</b></div>
+            <div>Distance: <b>${calcDistanceFromLatLong(receiverState.pos.lat, receiverState.pos.lng, transmitterState.pos.lat, transmitterState.pos.lng) + ' m'}</b></div>
+             <div>Accuracy: <b>${`±${receiverState.pos.acc.toFixed(0)} meters`}</b></div>
+             <div>Latitude: <b>${receiverState.pos.lat.toFixed(7)}</b></div>
+             <div>Longitude: <b>${receiverState.pos.lng.toFixed(7)}</b></div>`)
+        receiverMarker.setGeometry(receiverState.pos);
+    }
+    updateReceiverMarkerPosition()
 
-    var x = document.getElementById("demo");
-    var y = document.getElementById("camin");
-    var d = document.getElementById("distance");
-    let current_coordinates;
 
-    function getLocation() {
-        showCaminPosition()
+    function activateLocation() {
         if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(showPosition, errorPosition);
+            // alert('location activated!')
+            navigator.geolocation.watchPosition(updatePosition, errorPosition);
         } else {
-            x.innerHTML = "Geolocation is not supported by this browser.";
             alert("Geolocation is not supported by this browser.")
         }
     }
 
-    function showPosition(position) {
-        // alert("got position")
+    activateLocation()
+
+    function updatePosition(position) {
         console.log(position)
-        current_coordinates = position.coords
-        x.innerHTML = "Latitude current: " + position.coords.latitude +
-            "<br>Longitude current: " + position.coords.longitude;
-        showDistance()
+        const {latitude, longitude, accuracy} = position.coords
+        // alert('pos changed')
+        const timestamp = position.timestamp
+        newMarkerState.pos.lat = latitude
+        newMarkerState.pos.lng = longitude
+        newMarkerState.pos.acc = accuracy
+        newMarkerState.pos.timestamp = timestamp
+
+        receiverState.pos.lat = latitude
+        receiverState.pos.lng = longitude
+        receiverState.pos.acc = accuracy
+        receiverState.pos.timestamp = timestamp
+        updateReceiverMarkerPosition()
+
     }
 
-    function showCaminPosition() {
-        y.innerHTML = "Latitude camin: " + CAMIN_LAT +
-            "<br>Longitude camin: " + CAMIN_LONG;
-    }
-
-    function showDistance() {
-        // console.log(current_coordinates)
-        d.innerHTML = "Distance: " + calcDistanceFromLatLong(CAMIN_LAT, CAMIN_LONG, current_coordinates.latitude, current_coordinates.longitude).toFixed(2).toString() + "m"
-        console.log(d.innerText)
-    }
 
     function calcDistanceFromLatLong(lat1, lon1, lat2, lon2) {
         const R = 6371e3; // metres
@@ -122,11 +135,6 @@
         const d = R * c; // in metres
         return d.toFixed(1)
     }
-
-    // function calcDistanceFromLatLong(first, second) {
-    //     console.log(first.lat)
-    //     return calcDistanceFromLatLong(first.lat, first.lng, second.lat, second.lng)
-    // }
 
     function errorPosition(e) {
         alert(e)
@@ -191,8 +199,8 @@
     //     receiverMarker.setGeometry(receiverState.pos);
     // }, 1000);
 
-
-    let ws = new WebSocket("ws://localhost:80");
+    let gateway = `ws://${window.location.hostname}/ws`;
+    let ws = new WebSocket(gateway);
 
     ws.onopen = function () {
         // Web Socket is connected, send data using send()
@@ -205,10 +213,10 @@
         let received = evt.data
         var state = JSON.parse(received);
         // console.log(state)
+        const newMarkerPos = newMarkerState.pos
 
-        newMarkerPos.lat = MOCK_LAT + Math.random() * (0.007 + 0.007) - 0.007
-        newMarkerPos.lng = MOCK_LONG + Math.random() * (0.04) - 0.02
-        newMarkerPos.acc = 16
+        // newMarkerPos.lat = MOCK_LAT + Math.random() * (0.007 + 0.007) - 0.007
+        // newMarkerPos.lng = MOCK_LONG + Math.random() * (0.04) - 0.02
 
         let newMarker = new H.map.Marker(newMarkerPos,
             {icon: circleIcon});
@@ -216,8 +224,8 @@
         // let distance = calcDistanceFromLatLong(newMarkerPos.lat, newMarkerPos.lng,transmitterState.pos.lat, transmitterState.pos.lng)
         newMarker.setData(
             `<div><b>Signal</b></div>
-             <div>Distance: <b>${calcDistanceFromLatLong(newMarkerPos.lat, newMarkerPos.lng,transmitterState.pos.lat, transmitterState.pos.lng) + ' m'}</b></div>
-             <div>Accuracy: <b>${`±${newMarkerPos.acc} meters`}</b></div>
+             <div>Distance: <b>${calcDistanceFromLatLong(newMarkerPos.lat, newMarkerPos.lng, transmitterState.pos.lat, transmitterState.pos.lng) + ' m'}</b></div>
+             <div>Accuracy: <b>${`±${newMarkerPos.acc.toFixed(0)} meters`}</b></div>
              <div>Latitude: <b>${newMarkerPos.lat.toFixed(7)}</b></div>
              <div>Longitude: <b>${newMarkerPos.lng.toFixed(7)}</b></div>`
         )
