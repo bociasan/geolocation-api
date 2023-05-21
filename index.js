@@ -3,7 +3,7 @@ import express from 'express';
 
 const app = express();
 const port = 3000
-const wss = new WebSocketServer({port: 80, host : '127.0.0.1' });
+const wss = new WebSocketServer({port: 2000 });
 let state = {millis: 0}
 let millisFlag = true
 const millisFunc = () => {
