@@ -35,7 +35,7 @@ wss.on('connection', function connection(ws) {
     });
 });
 app.get('/', function (request, response) {
-    response.sendFile("index.html");
+    response.sendFile("index.html", { root: '.' });
 });
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
