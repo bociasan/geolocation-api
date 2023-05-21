@@ -35,7 +35,7 @@ wss.on('connection', function connection(ws) {
     });
 });
 app.get('/', function (request, response) {
-    response.sendFile("D:\\Projects\\license_thesis\\geolocation-api\\index.html");
+    response.sendFile("index.html");
 });
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
